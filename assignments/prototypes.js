@@ -15,10 +15,11 @@
  * destroy() // prototype method that returns: `${this.name} was removed from the game.`
  */
 
-function GameObject(createdAt, name, dimensions) {
+function GameObject(createdAt, name, dimensions, status) {
   this.createdAt = createdAt;
   this.name = name;
   this.dimensions = dimensions;
+  this.status = status;
 }
 
 GameObject.prototype.destroy = function () {
@@ -32,15 +33,20 @@ GameObject.prototype.destroy = function () {
  * should inherit destroy() from GameObject's prototype
  */
 
-function CharacterStats(createdAt, name, dimensions, healthPoints) {
-  GameObject.call(this, createdAt, name, dimensions);
+function CharacterStats(createdAt, name, dimensions, healthPoints, status) {
+  GameObject.call(this, createdAt, name, dimensions, status);
   this.healthPoints = healthPoints;
 }
 
 CharacterStats.prototype = new GameObject();
 
-CharacterStats.prototype.takeDamage = function () {
-  return `${this.name} took damage.`;
+CharacterStats.prototype.takeDamage = function (damagePoints = 0) {
+  this.healthPoints = this.healthPoints - damagePoints;
+  return { message: `${this.name} took ${damagePoints} damage. Health is now ${this.healthPoints}`, damagePoints };
+};
+
+CharacterStats.prototype.attack = function () {
+  return this.damage;
 };
 
 /*
@@ -55,10 +61,12 @@ CharacterStats.prototype.takeDamage = function () {
  */
 
 function Humanoid(attrs) {
-  CharacterStats.call(this, attrs.createdAt, attrs.name, attrs.dimensions, attrs.healthPoints);
+  CharacterStats.call(this, attrs.createdAt, attrs.name, attrs.dimensions, attrs.healthPoints, attrs.status);
   this.team = attrs.team;
   this.weapons = attrs.weapons;
   this.language = attrs.language;
+  this.strength = attrs.strength;
+  this.damage = Math.floor(Math.random() * Math.floor(this.strength));
 }
 
 Humanoid.prototype = new CharacterStats();
@@ -135,7 +143,7 @@ console.log(swordsman.team); // The Round Table
 console.log(mage.weapons); // Staff of Shamalama
 console.log(archer.language); // Elvish
 console.log(archer.greet()); // Lilith offers a greeting in Elvish.
-console.log(mage.takeDamage()); // Bruce took damage.
+console.log(mage.takeDamage().message); // Bruce took damage.
 console.log(swordsman.destroy()); // Sir Mustachio was removed from the game.
 
 
@@ -144,3 +152,83 @@ console.log(swordsman.destroy()); // Sir Mustachio was removed from the game.
 // function. * Give the Hero and Villains different methods that could be used to remove health
 // points from objects which could result in destruction if health gets to 0 or drops below 0; *
 // Create two new objects, one a villain and one a hero and fight it out with methods!
+
+function Villain(attrs) {
+  Humanoid.call(this, attrs);
+
+  this.taunt = 'You can never defeat me!';
+}
+
+Villain.prototype = Object.create(Humanoid.prototype);
+
+
+function Hero(attrs) {
+  Humanoid.call(this, attrs);
+}
+
+Hero.prototype = Object.create(Humanoid.prototype);
+
+
+const evilVillain = new Villain({
+  createdAt: new Date(),
+  dimensions: {
+    length: 6,
+    width: 8,
+    height: 24,
+  },
+  healthPoints: 25,
+  name: 'Gorgoth',
+  team: 'Super Evil Gang',
+  weapons: [
+    'club',
+    'mace',
+  ],
+  language: 'English',
+  strength: 8,
+  status: 'alive',
+});
+
+const superHero = new Hero({
+  createdAt: new Date(),
+  dimensions: {
+    length: 3,
+    width: 5,
+    height: 8,
+  },
+  healthPoints: 32,
+  name: 'Super Dude',
+  team: 'Super Good Crew',
+  weapons: [
+    'sword',
+    'yo-yo',
+  ],
+  language: 'English',
+  strength: 12,
+  status: 'alive',
+});
+
+console.log(evilVillain.taunt);
+
+const characters = [evilVillain, superHero];
+const random = Math.random() >= 0.5 ? 1 : 0;
+
+let activeChar = characters[random];
+let inactiveChar = characters.reverse()[random];
+
+
+while (activeChar.status === 'alive' && inactiveChar.status === 'alive') {
+  activeChar = characters[random];
+  inactiveChar = characters.reverse()[random];
+
+  console.log(`${activeChar.name} attacks!`);
+  const damage = inactiveChar.takeDamage(activeChar.attack());
+  console.log(`${inactiveChar.name} took ${damage.damagePoints} in damage and his health is now ${inactiveChar.healthPoints}!\n`);
+
+  if (activeChar.healthPoints < 0) {
+    console.log(activeChar.destroy());
+    activeChar.status = 'dead';
+  } else if (inactiveChar.healthPoints < 0) {
+    console.log(inactiveChar.destroy());
+    inactiveChar.status = 'dead';
+  }
+}
